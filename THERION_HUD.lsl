@@ -1,11 +1,18 @@
-// I usually give everything a "product name" that is unique, so that the listener can discard anything for other products that may otherwise use the same channel
+// I give everything a "product name" that is unique, so that the listener can discard anything for other products that may otherwise use the same channel
 // It doesn't matter what this is set to as long as the same string is in the receiver and the HUD
+// In this case we're also giving it an "animation prefix" since all of Foe's anims for this head begin with "deer"
 string productName = "THERION_NYX_DEER";
 string animationPrefix = "deer";
 integer channel = 42069;
 integer listenHandle;
 
-// Handle current states for deformers, toggles, animations
+// The hud closes/opens by rotation so it needs to be moved up a bit when it opens.
+// TODO -- it'd be cool to have this be ADDED to the current position, so that people can reposition the HUD and still have it worked!
+vector closed_position = <0.0, 0.0, -0.5565>;
+vector open_position = <0.0, 0.0, -0.19>;
+
+// Handle current states for deformers, toggles, animations.
+// This data will be saved more permanently in linkset data
 integer brow;
 integer ear;
 integer mouth;
@@ -40,20 +47,15 @@ integer bom;
 integer eye_rot;
 
 string page;
-integer closed = TRUE;
+integer closed;
 
 key owner;
-
-vector closed_position = <0.0, 0.0, -0.5565>;
-vector open_position = <0.0, 0.0, -0.19>;
 
 init()
 {
     owner = llGetOwner();
 
     listenHandle = llListen(channel, "", "", "");
-
-   // Here I can also take the TAB_SETTINGS list, which is readable by humans, and make a version that's much faster for the script to run through (using actual link numbers).
 
     loadStoredData();
 
@@ -103,6 +105,7 @@ loadStoredData()
 
         llLinksetDataWrite("eye_rot","0");
         llLinksetDataWrite("page","anims");
+        llLinksetDataWrite("closed","0");
     }
 
     brow = (integer)llLinksetDataRead("brow");
@@ -140,10 +143,13 @@ loadStoredData()
 
     page = llLinksetDataRead("page");
 
+    closed = (integer)llLinksetDataRead("closed");
+
 }
 
 toggleThisFace(integer prim, integer face, integer on)
 {
+    // Function for toggling a face on/off, if given the prim, face, and true or false.
     float alpha = 0.0;
     if (on) alpha = 1.0;
     llSetLinkPrimitiveParamsFast(prim,  [ PRIM_COLOR, face, <1.000, 1.000, 1.000>, alpha ] );
@@ -151,6 +157,7 @@ toggleThisFace(integer prim, integer face, integer on)
 
 rotateHud(string destination)
 {
+    // Takes a "destination" that can be anims, options or closed.
     closed = FALSE;
     if (destination == "anims")
     {
@@ -178,7 +185,7 @@ buttonHandlers(integer prim, integer face, string name)
 {
     // This will handle what our buttons do based on the prim name and the face touched.
 
-    // Any instructions we might have to send to the receiver for head controls
+    // Any instructions we might have to send to the receiver for head controls start here.
     // These will always start with the product name.
     list instructions = [];
     instructions += productName;
@@ -186,7 +193,7 @@ buttonHandlers(integer prim, integer face, string name)
     if (name == "Pages")
     {
 
-        // rotate!
+        // rotate! but only if we aren't already on that page
         if (face == 0 && page != "anims")
         {
             rotateHud("anims");
@@ -211,6 +218,8 @@ buttonHandlers(integer prim, integer face, string name)
         // and finally the number of the face we touched.
         // Yay! This will correspond to an animation!
 
+        // For sanity's sake I will be sending, for example, "animation, ear, deerEar2" so that when the receiver... receives... it can know immediately that it's doing animation stuff, then ear stuff, THEN the name of the anim.
+
         // We'll also need to toggle the buttons visually and save the currently playing animation
         llLinksetDataWrite(llToLower(name), (string)face);
 
@@ -226,7 +235,9 @@ buttonHandlers(integer prim, integer face, string name)
     {
         instructions += name;
         integer i;
-        // Dynamic anims
+
+        // Dynamic anims.
+        // TODO -- actually send instructions.
         if (face < 5)
         {
             // earses
@@ -244,6 +255,7 @@ buttonHandlers(integer prim, integer face, string name)
             // face
 
             //turn off other face dynamics and turn this one on
+
             for (i = 5; i < 8; i++)
             {
                 toggleThisFace(prim, i, 0);
@@ -254,6 +266,7 @@ buttonHandlers(integer prim, integer face, string name)
     }
     if (name == "MiscAnim")
     {
+        // TODO -- actually send instructions.
         instructions += name;
         if (face == 0)
         {
@@ -284,6 +297,7 @@ buttonHandlers(integer prim, integer face, string name)
     }
     if (name == "Fluff")
     {
+        // TODO -- actually send instructions.
         instructions += name;
         // toggle
         if (face < 2)
@@ -305,6 +319,7 @@ buttonHandlers(integer prim, integer face, string name)
     }
     else if (name == "Lash")
     {
+        // TODO -- actually send instructions.
         instructions += name;
         // toggle
         if (face == 0)
@@ -322,6 +337,7 @@ buttonHandlers(integer prim, integer face, string name)
     }
     else if (name == "Teeth")
     {
+        // TODO -- actually send instructions.
         integer i;
         instructions += name;
         // toggle
@@ -356,7 +372,7 @@ buttonHandlers(integer prim, integer face, string name)
     }
     else if (name == "MiscOptions")
     {
-
+        // TODO -- actually send instructions.
         if (face == 4)
         {
             instructions += "bom";
@@ -418,7 +434,7 @@ default
           // Let's continue
           integer face = llDetectedTouchFace(0);
           // I also want the name of the prim, since this will never change, but linkset order could :)
-      string primName = llGetLinkName(link);
+          string primName = llGetLinkName(link);
 
           // Now I can send this information up to my button handler function!
           buttonHandlers(link, face, primName);
