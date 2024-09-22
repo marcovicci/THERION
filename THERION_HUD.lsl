@@ -2,7 +2,7 @@
 // It doesn't matter what this is set to as long as the same string is in the receiver and the HUD
 string productName = "THERION_NYX_DEER";
 string animationPrefix = "deer";
-integer channel = 42069; 
+integer channel = 42069;
 integer listenHandle;
 
 // Handle current states for deformers, toggles, animations
@@ -52,59 +52,59 @@ init()
     owner = llGetOwner();
 
     listenHandle = llListen(channel, "", "", "");
-   
+
    // Here I can also take the TAB_SETTINGS list, which is readable by humans, and make a version that's much faster for the script to run through (using actual link numbers).
-    
+
     loadStoredData();
 
 }
 
 loadStoredData()
 {
-    // This function is for writing / reading stored data. 
+    // This function is for writing / reading stored data.
     // I use it to store things like what deformer is playing,
     // and it will survive even if the script resets!
-    
+
     if (llLinksetDataCountKeys() == 0)
     {
-        // This will only happen if there's no stored data at all. 
+        // This will only happen if there's no stored data at all.
         // If so, we'll write initial values in.
-        
+
         llLinksetDataWrite("brow","0");
         llLinksetDataWrite("ear","0");
         llLinksetDataWrite("mouth","0");
         llLinksetDataWrite("tongue","0");
         llLinksetDataWrite("jaw","0");
         llLinksetDataWrite("lid","0");
-    
+
         llLinksetDataWrite("typing","1");
         llLinksetDataWrite("blink","1");
         llLinksetDataWrite("twitch_full","0");
         llLinksetDataWrite("twitch_lil","0");
         llLinksetDataWrite("breathe","1");
         llLinksetDataWrite("flehmen","0");
-    
+
         llLinksetDataWrite("fluff_ear","0");
         llLinksetDataWrite("fluff_head","0");
         llLinksetDataWrite("fluff_muzzle","0");
         llLinksetDataWrite("fluff_neck","0");
-    
+
         llLinksetDataWrite("lash_upper","0");
         llLinksetDataWrite("lash_middle","0");
         llLinksetDataWrite("lash_lower","0");
-    
+
         llLinksetDataWrite("teeth","0");
         llLinksetDataWrite("fangs","0");
         llLinksetDataWrite("tusks","0");
-    
+
         llLinksetDataWrite("bridge_deform","0");
-    
+
         llLinksetDataWrite("bom","0");
-    
+
         llLinksetDataWrite("eye_rot","0");
         llLinksetDataWrite("page","anims");
     }
-    
+
     brow = (integer)llLinksetDataRead("brow");
     ear = (integer)llLinksetDataRead("ear");
     mouth = (integer)llLinksetDataRead("mouth");
@@ -137,9 +137,9 @@ loadStoredData()
     bom = (integer)llLinksetDataRead("bom");
 
     eye_rot = (integer)llLinksetDataRead("eye_rot");
-    
+
     page = llLinksetDataRead("page");
-    
+
 }
 
 toggleThisFace(integer prim, integer face, integer on)
@@ -150,7 +150,7 @@ toggleThisFace(integer prim, integer face, integer on)
 }
 
 rotateHud(string destination)
-{   
+{
     closed = FALSE;
     if (destination == "anims")
     {
@@ -182,7 +182,7 @@ buttonHandlers(integer prim, integer face, string name)
     // These will always start with the product name.
     list instructions = [];
     instructions += productName;
-    
+
     if (name == "Pages")
     {
 
@@ -195,34 +195,35 @@ buttonHandlers(integer prim, integer face, string name)
         {
            rotateHud("options");
         }
-        
+
     }
     if (name == "Brow" || name == "Ear" || name == "Lip" || name == "Tongue" || name == "Jaw" || name == "Lid")
     {
-        // We need to send a few instructions: One to play an animation, 
+        // We need to send a few instructions: One to play an animation,
         // AND an animation to play corresponding to the button
         instructions += "animation";
         instructions += name;
         instructions += (string)face;
-        
+
         // We set animation prefix at the top (in this case deer).
-        // Next we send the name of this button (like Jaw etc) 
+        // Next we send the name of this button (like Jaw etc)
         // and finally the number of the face we touched.
         // Yay! This will correspond to an animation!
-        
-        // We'll also need to toggle the buttons visually and save the currently playing animation 
+
+        // We'll also need to toggle the buttons visually and save the currently playing animation
         llLinksetDataWrite(llToLower(name), (string)face);
-        
+
         // Turn all buttons here "off"
         toggleThisFace(prim, ALL_SIDES, 0);
-        
-        // Turn the touched button "on" 
+
+        // Turn the touched button "on"
         toggleThisFace(prim, face, 1);
-        
+
         llWhisper(channel, llList2CSV(instructions));
     }
     if (name == "Dynamic")
     {
+        string cur_alpha = llList2String(llGetLinkPrimitiveParams(prim, [ PRIM_COLOR, face ]),1);
         instructions += name;
         integer i;
         // Dynamic anims
@@ -230,33 +231,50 @@ buttonHandlers(integer prim, integer face, string name)
         {
             instructions += "Ears";
             instructions += face;
-            llWhisper(channel, llList2CSV(instructions));
             // earses
-            
+
             //turn off other earses dynamics and turn this one on
-            
+
             for (i = 0; i < 5; i++)
             {
                 toggleThisFace(prim, i, 0);
             }
-            toggleThisFace(prim, face, 1);
-        
+            if (cur_alpha == "0.000000")
+            {
+                toggleThisFace(prim, face, 1);
+                llWhisper(channel, llList2CSV(instructions));
+            }
+            else
+            {
+                instructions += "OFF";
+                llWhisper(channel, llList2CSV(instructions));
+            }
+
         }
-        else 
+        else
         {
             // face
             instructions += "Face";
             instructions += face;
-            llWhisper(channel, llList2CSV(instructions));
-            
+
             //turn off other face dynamics and turn this one on
             for (i = 5; i < 8; i++)
             {
                 toggleThisFace(prim, i, 0);
             }
-            toggleThisFace(prim, face, 1);
+            if (cur_alpha == "0.000000")
+            {
+                instructions += "on";
+                toggleThisFace(prim, face, 1);
+                llWhisper(channel, llList2CSV(instructions));
+            }
+            else
+            {
+                instructions += "OFF";
+                llWhisper(channel, llList2CSV(instructions));
+            }
         }
-        
+
     }
     if (name == "MiscAnim")
     {
@@ -282,7 +300,7 @@ buttonHandlers(integer prim, integer face, string name)
             llLinksetDataWrite("blink", (string)blink);
             instructions += (string)blink;
             llWhisper(channel, llList2CSV(instructions));
-            
+
         }
         if (face == 4)
         {
@@ -309,30 +327,44 @@ buttonHandlers(integer prim, integer face, string name)
         else
         {
             // Twitch anims
-           
+            string cur_alpha = llList2String(llGetLinkPrimitiveParams(prim, [ PRIM_COLOR, face ]),1);
+            toggleThisFace(prim, 2, 0);
+            toggleThisFace(prim, 3, 0);
+            if (face == 2) instructions += "twitch_lil";
+            if (face == 3) instructions += "twitch_full";
+            if (cur_alpha == "0.000000")
+            {
+                toggleThisFace(prim, face, 1);
+                instructions += 1;
+                llWhisper(channel, llList2CSV(instructions));
+            }
+            else
+            {
+                instructions += 0;
+                llWhisper(channel, llList2CSV(instructions));
+            }
         }
     }
     if (name == "Fluff")
     {
         instructions += name;
+        instructions += face;
         // toggle
-        if (face < 2)
-        {
-            // earses
-        }
-        else if (face < 4)
-        {
-            // head
-        }
-        else if (face < 6)
-        {
-            // muzzle
-        }
-        else
-        {
-            // neck
-        }
+        string cur_alpha = llList2String(llGetLinkPrimitiveParams(prim, [ PRIM_COLOR, face ]),1);
+        if (cur_alpha == "0.000000")
+            {
+                toggleThisFace(prim, face, 1);
+                instructions += 1;
+                llWhisper(channel, llList2CSV(instructions));
+            }
+            else
+            {
+                toggleThisFace(prim, face, 0);
+                instructions += 0;
+                llWhisper(channel, llList2CSV(instructions));
+            }
     }
+
     else if (name == "Lash")
     {
         instructions += name;
@@ -347,7 +379,7 @@ buttonHandlers(integer prim, integer face, string name)
             llLinksetDataWrite("lash_upper", (string)lash_upper);
             instructions += (string)lash_upper;
             llWhisper(channel, llList2CSV(instructions));
-            
+
         }
         else if (face == 1)
         {
@@ -359,7 +391,7 @@ buttonHandlers(integer prim, integer face, string name)
             llLinksetDataWrite("lash_middle", (string)lash_middle);
             instructions += (string)lash_middle;
             llWhisper(channel, llList2CSV(instructions));
-            
+
         }
         else if (face == 2)
         {
@@ -377,16 +409,20 @@ buttonHandlers(integer prim, integer face, string name)
     {
         integer i;
         instructions += name;
+        instructions += face;
         // toggle
+        string special = llList2String(llGetLinkPrimitiveParams(prim, [ PRIM_COLOR, face ]),1);
+
         if (face < 2)
         {
             // teeth
-            
+
             for (i = 0; i < 2; i++)
             {
                 toggleThisFace(prim, i, 0);
             }
-            toggleThisFace(prim, face, 1);
+            if (special == "0.000000") toggleThisFace(prim, face, 1);
+            else instructions += "OFF";
             llWhisper(channel, llList2CSV(instructions));
         }
         else if (face < 4)
@@ -396,32 +432,35 @@ buttonHandlers(integer prim, integer face, string name)
             {
                 toggleThisFace(prim, i, 0);
             }
-            toggleThisFace(prim, face, 1);
+            if (special == "0.000000") toggleThisFace(prim, face, 1);
+            else instructions += "OFF";
             llWhisper(channel, llList2CSV(instructions));
         }
-        else 
+        else
         {
             // tusks
             for (i = 4; i < 7; i++)
             {
                 toggleThisFace(prim, i, 0);
             }
-            toggleThisFace(prim, face, 1);
+            if (special == "0.000000") toggleThisFace(prim, face, 1);
+            else instructions += "OFF";
             llWhisper(channel, llList2CSV(instructions));
         }
     }
     else if (name == "MiscOptions")
     {
-        
+
         if (face == 4)
         {
             instructions += "bom";
             // Bom toggle
+            llWhisper(channel, llList2CSV(instructions));
         }
         else if (face == 5)
         {
             // Eye rot
-            instructions += "eye_rot";
+            instructions += "Eye_Rotate";
             llWhisper(channel, llList2CSV(instructions));
             // eye rotate
             eye_rot = !eye_rot;
@@ -433,10 +472,10 @@ buttonHandlers(integer prim, integer face, string name)
             integer i;
             instructions += "deformer";
             // Bridge deformer
-            
+
             instructions += face;
             llWhisper(channel, llList2CSV(instructions));
-            
+
             for (i = 0; i < 4; i++)
             {
                 toggleThisFace(prim, i, 0);
@@ -459,7 +498,7 @@ default
         init();
     }
 
-     // This is our button listener. 
+     // This is our button listener.
     touch_start(integer num_detected)
      {
       // First I grab the prim touched
@@ -476,14 +515,14 @@ default
       {
           // Let's continue
           integer face = llDetectedTouchFace(0);
-          // I also want the name of the prim, since this will never change, but linkset order could :) 
+          // I also want the name of the prim, since this will never change, but linkset order could :)
       string primName = llGetLinkName(link);
-      
+
           // Now I can send this information up to my button handler function!
           buttonHandlers(link, face, primName);
-          
+
       }
-      
-     
+
+
      }
 }
